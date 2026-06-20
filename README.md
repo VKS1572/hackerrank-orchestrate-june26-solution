@@ -1,161 +1,182 @@
 # HackerRank Orchestrate
 
-Starter repository for the **HackerRank Orchestrate** 24-hour hackathon.
+🧠 Multi-Modal Evidence Review System
+📌 Overview
 
-Build a system that verifies visual evidence for damage claims across three object types: **cars**, **laptops**, and **packages**.
+This project solves the HackerRank Orchestrate – Multi-Modal Evidence Review challenge.
 
-Your system will receive claim conversations, one or more submitted images, user claim history, and minimum evidence requirements. It must decide whether the submitted images support the claim, contradict it, or do not provide enough information.
+The system evaluates insurance-style claims using:
 
-Read [`problem_statement.md`](./problem_statement.md) for the full task spec, input/output schema, and allowed values.
+🖼️ Image evidence (primary source of truth)
+💬 Claim conversation (user intent)
+👤 User history (risk context)
+📋 Evidence requirements (validation rules)
 
----
+For each claim, the system determines:
 
-## Contents
+claim_status → supported / contradicted / not_enough_information
+evidence validity and sufficiency
+issue type & object part
+risk signals and severity
+supporting images for decision
+🎯 Problem Objective
 
-1. [Repository layout](#repository-layout)
-2. [What you need to build](#what-you-need-to-build)
-3. [Where your code goes](#where-your-code-goes)
-4. [Quickstart](#quickstart)
-5. [Evaluation](#evaluation)
-6. [Chat transcript logging](#chat-transcript-logging)
-7. [Submission](#submission)
-8. [Judge interview](#judge-interview)
+Given a claim involving one of:
 
----
+🚗 Car
+💻 Laptop
+📦 Package
 
-## Repository layout
+The system must:
 
-```text
-.
-├── AGENTS.md                         # Rules for AI coding tools + transcript logging
-├── problem_statement.md              # Full task description and I/O schema
-├── README.md                         # You are here
-├── code/                             # Build your solution here
-│   ├── main.py                       # Suggested terminal entry point
-│   └── evaluation/
-│       └── main.py                   # Suggested evaluation entry point
-└── dataset/
-    ├── sample_claims.csv             # Inputs + expected outputs for development
-    ├── claims.csv                    # Inputs only; run your system on these rows
-    ├── user_history.csv              # Historical claim counts and risk context
-    ├── evidence_requirements.csv     # Minimum image evidence requirements
-    └── images/
-        ├── sample/                   # Images referenced by sample_claims.csv
-        └── test/                     # Images referenced by claims.csv
-```
+Extract the actual claim from conversation
+Analyze all submitted images
+Validate whether evidence is sufficient
+Identify visible issue type and object part
+Decide claim outcome:
+supported
+contradicted
+not_enough_information
+Provide structured justification and risk flags
+🧠 System Architecture
 
----
+The solution follows a Hybrid Vision + Reasoning Pipeline:
 
-## What you need to build
+1. Image Understanding (Gemini 2.5 Flash Vision)
 
-A system that, for each row in `dataset/claims.csv`, produces one row in `output.csv`.
+Each image is analyzed to extract:
 
-Input fields:
+object type detection
+visible damage or condition
+object part identification
+image quality assessment
+validity check
+2. Claim Parsing (Text Understanding)
 
-| Column | Meaning |
-|---|---|
-| `user_id` | User submitting the claim; use this to look up `dataset/user_history.csv` |
-| `image_paths` | One or more submitted image paths, separated by semicolons |
-| `user_claim` | Chat transcript describing the issue |
-| `claim_object` | `car`, `laptop`, or `package` |
+Extracts structured intent from conversation:
 
-Required output fields:
+claimed issue
+object type
+affected part
+3. Evidence Validation Layer
 
-| Column | Meaning |
-|---|---|
-| `evidence_standard_met` | Whether the image set is sufficient to evaluate the claim |
-| `evidence_standard_met_reason` | Short reason for the evidence decision |
-| `risk_flags` | Semicolon-separated risk flags, or `none` |
-| `issue_type` | Visible issue type |
-| `object_part` | Relevant object part |
-| `claim_status` | `supported`, `contradicted`, or `not_enough_information` |
-| `claim_status_justification` | Concise explanation grounded in the image evidence |
-| `supporting_image_ids` | Image IDs supporting the decision, or `none` |
-| `valid_image` | Whether the image set is usable for automated review |
-| `severity` | `none`, `low`, `medium`, `high`, or `unknown` |
+Checks:
 
-Hard requirements:
+image clarity
+required evidence completeness
+mismatch detection
+missing views or insufficient data
+4. Decision Engine (Deterministic Logic)
 
-- Must read the provided CSV files and local images.
-- Must produce `output.csv` with the exact schema in `problem_statement.md`.
-- Must include an evaluation workflow
-- Must avoid hardcoded test labels or file-specific answers.
+Combines:
 
-Beyond that you are free to bring your own approach: VLMs, LLMs, structured prompting, rule layers, batching, caching, evaluation pipelines, model comparison, or anything else.
+vision outputs
+claim intent
+evidence rules
+user history risk signals
 
----
+Final classification:
 
-## Where your code goes
+supported
+contradicted
+not_enough_information
+⚙️ Model Used
+Gemini 2.5 Flash (Vision API)
+Used for image understanding
+Structured JSON output enforced
+NOT used for final decision making
+🔥 Key Design Principles
+Images are treated as primary truth
+LLM outputs are always structured JSON (no free text decisions)
+Final decision is rule-based for consistency
+System avoids hallucination by separating:
+perception (vision model)
+reasoning (code layer)
+🧪 Evaluation Strategy
 
-All of your work belongs in [`code/`](./code/). The repo ships with empty starter files that you can grow into your full solution.
+Three approaches were evaluated:
 
-Suggested conventions:
+1. Rule-Based Baseline
+keyword + heuristic logic
+fast but low accuracy
+2. Vision-Only Approach
+direct LLM classification
+high variance, inconsistent reasoning
+3. Hybrid System (Final) ⭐
+Gemini extracts structured features
+deterministic reasoning engine makes final decision
+best balance of accuracy + reliability
+📊 Output Schema
 
-- Put your main runnable solution in `code/main.py`, or document your own entry point clearly.
-- Put evaluation code under `code/evaluation/` or an `evaluation/` folder included in your final `code.zip`.
-- Write final predictions to `output.csv`.
+The system generates output.csv with:
 
----
+evidence_standard_met
+evidence_standard_met_reason
+risk_flags
+issue_type
+object_part
+claim_status
+claim_status_justification
+supporting_image_ids
+valid_image
+severity
+⚠️ Risk Flags Used
 
-## Quickstart
+The system detects and flags:
 
-Clone this repository:
+blurry_image
+low_quality_image
+object_mismatch
+insufficient_evidence
+suspicious_claim_pattern
+missing_required_views
+🧩 Project Flow
+claims.csv
+   ↓
+Data Loader
+   ↓
+Image Processing (Gemini 2.5 Flash)
+   ↓
+Claim Parsing Module
+   ↓
+Evidence Validation Layer
+   ↓
+Decision Engine
+   ↓
+output.csv
+🚀 How to Run
+pip install -r requirements.txt
+python code/main.py
+📁 Project Structure
+code/
+ ├── main.py
+ ├── vision.py
+ ├── reasoning.py
+ ├── schema.py
+ ├── utils.py
+ ├── evaluation/
+ │    └── evaluate.py
+dataset/
+ ├── claims.csv
+ ├── user_history.csv
+ ├── evidence_requirements.csv
+ ├── images/
+output.csv
+🧠 Key Insights
+Separating vision and reasoning significantly improves reliability
+Structured JSON outputs reduce hallucination from LLM
+Deterministic final logic ensures consistent grading
+Multi-image aggregation improves evidence accuracy
+📈 Limitations
+Performance depends on image quality
+Edge cases with ambiguous claims may fall into not_enough_information
+API latency depends on Gemini response time
+🔮 Future Improvements
+Confidence scoring per decision
+Fine-tuned damage detection model
+Multi-image attention fusion model
+Cost optimization via batching + caching
+👨‍💻 Author
 
-```bash
-git clone git@github.com:interviewstreet/hackerrank-orchestrate-june26.git
-cd hackerrank-orchestrate-june26
-```
-
-You are free to use any language or runtime. Python, JavaScript, and TypeScript are all reasonable choices.
-
----
-
-## Evaluation
-
-The evaluation report should include:
-
-- metrics on `dataset/sample_claims.csv`
-- at least two strategies, prompts, or model configurations compared
-- the final strategy used for `output.csv`
-- operational analysis covering model calls, token usage, image usage, approximate cost, runtime, and TPM/RPM considerations
-
----
-
-## Chat transcript logging
-
-This repo ships with an `AGENTS.md` that modern AI coding tools may read. It instructs the tool to append conversation turns to a shared log file:
-
-| Platform | Path |
-|---|---|
-| macOS / Linux | `$HOME/hackerrank_orchestrate/log.txt` |
-| Windows | `%USERPROFILE%\hackerrank_orchestrate\log.txt` |
-
-You will upload this log as your chat transcript at submission time. The chat transcript means your conversation with the AI coding tool you used to build the system. It is not the runtime logs, reasoning trace, or conversation history produced by the claim-verification agent you are building.
-
-If you use multiple AI tools, include the relevant conversation logs from all of them in the same transcript file. Separate each tool's section with a clear divider and label it with the tool name.
-
-Never paste secrets into the chat. If secrets are needed, use environment variables.
-
----
-
-## Submission
-
-Submit the following files as instructed by HackerRank:
-
-1. **Code zip**: zip your runnable solution, README, prompts/configs, and evaluation folder. Exclude virtualenvs, `node_modules`, build artifacts, and unnecessary generated files.
-2. **Predictions CSV**: your final `output.csv` for all rows in `dataset/claims.csv`.
-3. **Chat transcript**: the `log.txt` from the path in [Chat transcript logging](#chat-transcript-logging).
-
-Before submitting, confirm:
-
-- `output.csv` has one row per row in `dataset/claims.csv`.
-- `output.csv` has the exact required columns in the exact required order.
-- Your evaluation files are included in `code.zip`.
-
----
-
-## Judge interview
-
-After submission, the AI Judge may ask about your approach, implementation decisions, model usage, evaluation strategy, and how you used AI while building the solution.
-
-Be prepared to explain your solution in detail.
+Vikas Pradhan
+HackerRank Orchestrate Submission – Multi-Modal Evidence Review System
